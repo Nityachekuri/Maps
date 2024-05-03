@@ -1,0 +1,126 @@
+﻿@model WebApplication14.Destination
+
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Index</h2>
+
+<form id="distanceForm" class="form-inline" role="form">
+
+
+    <div class="container">
+        <h3 class="header text-center" style="color:red;">Display route and distance in MAP</h3>
+
+        <form id="distanceForm" class="form-inline" role="form">
+            <div class="form-group">
+                <label for="Name">Name:</label>
+                <input class="form-control" id="up" name="Name" placeholder="Name" type="text" required>
+            </div>
+            <div class="form-group">
+                <label for="start">Origin:</label>
+                <input class="form-control" id="start" name="start" placeholder="Origin Point" type="text" required>
+            </div>
+            <div class="form-group">
+                <label for="end">Destination:</label>
+                <input class="form-control" id="end" name="end" placeholder="Destination Point" type="text" required>
+            </div>
+            <br />
+            <button type="button" id="find" class="btn btn-primary">Submit</button>
+        </form>
+
+
+        <div class="panel panel-default outputResult" style="margin-top: 20px; display: none;">
+            <div class="panel-body">
+                <div class="form-group">
+                    <label for="output">Result:</label>
+                    <blockquote id="output"></blockquote>
+                </div>
+            </div>
+        </div>
+        <br />
+
+        <div id="map" style="height: 400px;"></div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDHrhMd3b1SSRO6diCRTp9chb-9Abg57fU&callback=initMap"
+                async defer></script>
+        <script>
+            var directionsService;
+            var directionsDisplay;
+
+            function initMap() {
+                directionsService = new google.maps.DirectionsService;
+                directionsDisplay = new google.maps.DirectionsRenderer;
+                var map = new google.maps.Map(document.getElementById('map'), {
+                    zoom: 7,
+                    center: { lat: 18.5204, lng: 73.8567 }
+                });
+
+                directionsDisplay.setMap(map);
+
+                var onChangeHandler = function () {
+                    calculateAndDisplayRoute();
+                };
+                document.getElementById('up').addEventListener('change', onChangeHandler);
+
+                document.getElementById('start').addEventListener('change', onChangeHandler);
+                document.getElementById('end').addEventListener('change', onChangeHandler);
+            }
+
+
+            function calculateAndDisplayRoute() {
+                var Name = document.getElementById('up').value;
+                var origin = document.getElementById('start').value;
+                var destination = document.getElementById('end').value;
+                directionsService.route({
+                    origin: origin,
+                    destination: destination,
+                    travelMode: 'DRIVING'
+                }, function (response, status) {
+                    if (status === 'OK') {
+                        directionsDisplay.setDirections(response);
+                        var route = response.routes[0];
+                        var outputDiv = document.getElementById('output');
+                        outputDiv.innerHTML = 'Distance: ' + route.legs[0].distance.text + '<br>Duration: ' + route.legs[0].duration.text;
+                        $(".outputResult").show();
+
+
+                        var distance = route.legs[0].distance.text;
+                        var duration = route.legs[0].duration.text;
+                        $.ajax({
+                            url: '/Index/SaveDistanceDuration',
+                            type: 'POST',
+                            data: {
+                                Name: Name,
+                                origin: origin,
+                                destination: destination,
+                                distance: distance,
+                                duration: duration
+                            },
+                            success: function (response) {
+                                ////if (response.success) {
+                                ////    $("#output").html("Distance and duration saved successfully.");
+                                ////} else {
+                                ////    $("#output").html("Failed to save distance and duration.");
+                                ////}
+                            },
+                            error: function (xhr, status, error) {
+                                $("#output").html("Error occurred while saving distance and duration.");
+                                console.error(error);
+                            }
+                        });
+                        document.getElementById("distanceForm").reset();
+
+                    } //else {
+                    //window.alert('Directions request failed due to ' + status);
+                    //}
+                });
+            }
+
+            $(document).ready(function () {
+                $("#find").click(function () {
+                    calculateAndDisplayRoute();
+                });
+            });
+        </script>
